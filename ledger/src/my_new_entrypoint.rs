@@ -136,8 +136,20 @@ async fn listen_to_shredstream() -> io::Result<()> {
             println!("Error deserializing shred: {:?}", e);
         }
         if i % 1000 == 0 {
+            // Sort the indexes within each slot
+            let sorted_dict: HashMap<i32, Vec<i32>> = dict
+                .into_iter()
+                .map(|(slot, indexes)| {
+                    let mut index_vec: Vec<i32> = indexes.into_iter().collect();
+                    index_vec.sort();
+                    (slot, index_vec)
+                })
+                .collect();
+
+            // Serialize the sorted dictionary to a JSON string
+            let serialized = serde_json::to_string_pretty(&sorted_dict).unwrap();
+
             println!("saving dict to file");
-            let serialized = serde_json::to_string_pretty(&dict).unwrap();
 
             // Write the JSON string to a file
             let mut file = File::create("dict.json").unwrap();
