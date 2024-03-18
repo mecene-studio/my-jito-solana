@@ -161,32 +161,34 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
             // println!("dict: {:?}", dict);
 
-            let target_slot = current_slot - 3;
+            if (current_slot > 3) {
+                let target_slot = current_slot - 3;
 
-            if (dict.contains_key(&target_slot)) {
-                let target_slot_dict = dict.get(&target_slot).unwrap();
+                if (dict.contains_key(&target_slot)) {
+                    let target_slot_dict = dict.get(&target_slot).unwrap();
 
-                let mut indexes = target_slot_dict.keys().collect::<Vec<&u32>>();
-                indexes.sort();
+                    let mut indexes = target_slot_dict.keys().collect::<Vec<&u32>>();
+                    indexes.sort();
 
-                let min_index = indexes[0];
-                let max_index = indexes[indexes.len() - 1];
+                    let min_index = indexes[0];
+                    let max_index = indexes[indexes.len() - 1];
 
-                let missing_indexes: Vec<u32> = (*min_index..=*max_index)
-                    .filter(|j| !indexes.contains(&j))
-                    .collect();
+                    let missing_indexes: Vec<u32> = (*min_index..=*max_index)
+                        .filter(|j| !indexes.contains(&j))
+                        .collect();
 
-                println!("target_slot: {:?}", target_slot);
-                println!("min_index: {:?}", min_index);
-                println!("max_index: {:?}", max_index);
-                println!("missing_indexes: {:?}", missing_indexes);
+                    println!("target_slot: {:?}", target_slot);
+                    println!("min_index: {:?}", min_index);
+                    println!("max_index: {:?}", max_index);
+                    println!("missing_indexes: {:?}", missing_indexes);
 
-                // let mut i = 0;
-                // for index in indexes {
-                //     let shred_data = target_slot_dict.get(index).unwrap();
-                //     println!("index: {:?}, shred_data", index);
-                //     i += 1;
-                // }
+                    // let mut i = 0;
+                    // for index in indexes {
+                    //     let shred_data = target_slot_dict.get(index).unwrap();
+                    //     println!("index: {:?}, shred_data", index);
+                    //     i += 1;
+                    // }
+                }
             }
         }
 
