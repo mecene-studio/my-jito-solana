@@ -47,7 +47,7 @@ extern crate lazy_static;
 extern crate solana_frozen_abi_macro;
 
 use serde_json;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::Write;
@@ -129,7 +129,10 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
                         println!("slot: {:?}, index: {:?}", slot, index);
 
-                        dict.entry(slot).or_insert(HashSet::new()).insert(index);
+                        dict.entry(slot)
+                            .or_insert(HashMap::new())
+                            .entry(index)
+                            .or_insert(shred);
                     }
                 },
             }
@@ -139,15 +142,14 @@ async fn listen_to_shredstream() -> io::Result<()> {
         }
         if i % 1000 == 0 {
             // Sort the indexes within each slot
-            let sorted_dict: HashMap<u64, Vec<u32>> = dict
-                .clone()
-                .into_iter()
-                .map(|(slot, indexes)| {
-                    let mut index_vec: Vec<u32> = indexes.into_iter().collect();
-                    index_vec.sort();
-                    (slot, index_vec) // Cast the slot to i32 if necessary
-                })
-                .collect();
+            let sorted_dict: HashMap<u64, HashMap<u32, Shred>> =
+                dict.clone().into_iter().map(|(slot, mut shred_map)| {
+                    let mut sorted_shred_map: HashMap<u32, Shred> = shred_map
+                        .drain()
+                        .map(|(index, shred)| (index, shred))
+                        .collect();
+                    (slot, sorted_shred_map)
+                });
 
             // Serialize the sorted dictionary to a JSON string
             let serialized = serde_json::to_string_pretty(&sorted_dict).unwrap();
