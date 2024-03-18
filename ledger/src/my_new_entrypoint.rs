@@ -254,7 +254,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
                                     .static_account_keys()
                                     .contains(&target_program_pubky)
                                 {
-                                    println!("found tx with target program id");
+                                    let time_now = std::time::SystemTime::now();
+                                    println!("\nfound tx with target program id at {:?}", time_now);
                                     println!("tx: {:?}", tx);
                                 }
                             }
