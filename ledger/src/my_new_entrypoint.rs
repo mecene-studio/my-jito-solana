@@ -30,6 +30,9 @@ mod staking_utils;
 pub mod token_balances;
 pub mod use_snapshot_archives_at_startup;
 
+use shredder::Shredder;
+use solana_entry::entry::Entry;
+
 use crate::shred::ShredCode;
 use crate::shred::ShredData;
 use shred::Shred;
@@ -68,7 +71,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
     let mut i = 0;
 
-    const const SLOT_DELAY: u32 = 5;
+    const SLOT_DELAY: u64 = 5;
 
     let mut current_slot = 0;
 
@@ -83,67 +86,72 @@ async fn listen_to_shredstream() -> io::Result<()> {
         let shred_result = Shred::new_from_serialized_shred(shred_raw);
 
         if let Ok(shred) = shred_result {
-            match shred {
-                Shred::ShredCode(shred_code) => match shred_code {
-                    ShredCode::Legacy(legacy_shred_code) => {
-                        // Access fields of `legacy_shred_code` if needed
-                        // println!("shred_common_header {:?}", legacy_shred_code.common_header);
-                        // println!("shred_coding_header {:?}", legacy_shred_code.coding_header);
-                    }
-                    ShredCode::Merkle(merkle_shred_code) => {
-                        // Access fields of `merkle_shred_code`
-                        // println!("shred_common_header {:?}", merkle_shred_code.coding_header);
-                        // println!("shred_coding_header {:?}", merkle_shred_code.coding_header);
-                        // println!("shred_payload len {:?}", merkle_shred_code.payload.len());
-                    }
-                },
-                Shred::ShredData(shred_data) => match shred_data {
-                    ShredData::Legacy(legacy_shred_data) => {
-                        // Access fields of `legacy_shred_data` if needed
-                        println!(
-                            "Legacy shred_common_header {:?}",
-                            legacy_shred_data.common_header
-                        );
-                        println!(
-                            "Legacy shred_coding_header {:?}",
-                            legacy_shred_data.data_header
-                        );
-                        println!(
-                            "Legacy shred_payload len {:?}",
-                            legacy_shred_data.payload.len()
-                        );
-                    }
-                    ShredData::Merkle(merkle_shred_data) => {
-                        // Access fields of `merkle_shred_data`
-                        // println!(
-                        //     "Merkle shred_common_header {:?}",
-                        //     merkle_shred_data.common_header
-                        // );
-                        // println!(
-                        //     "Merkle shred_coding_header {:?}",
-                        //     merkle_shred_data.data_header
-                        // );
-                        // println!(
-                        //     "Merkle shred_payload len {:?}",
-                        //     merkle_shred_data.payload.len()
-                        // );
+            // match shred {
+            //     Shred::ShredCode(shred_code) => match shred_code {
+            //         ShredCode::Legacy(legacy_shred_code) => {
+            //             // Access fields of `legacy_shred_code` if needed
+            //             // println!("shred_common_header {:?}", legacy_shred_code.common_header);
+            //             // println!("shred_coding_header {:?}", legacy_shred_code.coding_header);
+            //         }
+            //         ShredCode::Merkle(merkle_shred_code) => {
+            //             // Access fields of `merkle_shred_code`
+            //             // println!("shred_common_header {:?}", merkle_shred_code.coding_header);
+            //             // println!("shred_coding_header {:?}", merkle_shred_code.coding_header);
+            //             // println!("shred_payload len {:?}", merkle_shred_code.payload.len());
+            //         }
+            //     },
+            //     Shred::ShredData(shred_data) => match shred_data {
+            //         ShredData::Legacy(legacy_shred_data) => {
+            //             // Access fields of `legacy_shred_data` if needed
+            //             println!(
+            //                 "Legacy shred_common_header {:?}",
+            //                 legacy_shred_data.common_header
+            //             );
+            //             println!(
+            //                 "Legacy shred_coding_header {:?}",
+            //                 legacy_shred_data.data_header
+            //             );
+            //             println!(
+            //                 "Legacy shred_payload len {:?}",
+            //                 legacy_shred_data.payload.len()
+            //             );
+            //         }
+            //         ShredData::Merkle(merkle_shred_data) => {
+            //             let slot = merkle_shred_data.common_header.slot;
+            //             let index = merkle_shred_data.common_header.index;
 
-                        let slot = merkle_shred_data.common_header.slot;
-                        let index = merkle_shred_data.common_header.index;
+            //             // println!("slot: {:?}, index: {:?}", slot, index);
 
-                        // println!("slot: {:?}, index: {:?}", slot, index);
+            //             dict.entry(slot)
+            //                 .or_insert(HashMap::new())
+            //                 .entry(index)
+            //                 .or_insert(merkle_shred_data);
 
-                        dict.entry(slot)
-                            .or_insert(HashMap::new())
-                            .entry(index)
-                            .or_insert(merkle_shred_data);
+            //             if slot > current_slot {
+            //                 current_slot = slot;
+            //                 println!("current_slot: {:?}", current_slot);
+            //             }
+            //         }
+            //     },
+            // }
 
-                        if slot > current_slot {
-                            current_slot = slot;
-                            println!("current_slot: {:?}", current_slot);
-                        }
+            if let Shred::ShredData(ref shred_data) = shred {
+                if let ShredData::Merkle(ref merkle_shred_data) = *shred_data {
+                    let slot = merkle_shred_data.common_header.slot;
+                    let index = merkle_shred_data.common_header.index;
+
+                    // println!("slot: {:?}, index: {:?}", slot, index);
+
+                    dict.entry(slot)
+                        .or_insert_with(HashMap::new)
+                        .entry(index)
+                        .or_insert(shred);
+
+                    if slot > current_slot {
+                        current_slot = slot;
+                        println!("current_slot: {:?}", current_slot);
                     }
-                },
+                }
             }
         } else if let Err(e) = shred_result {
             // Handle the error case
@@ -163,10 +171,10 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
             // println!("dict: {:?}", dict);
 
-            if (current_slot > SLOT_DELAY) {
+            if current_slot > SLOT_DELAY {
                 let target_slot = current_slot - SLOT_DELAY;
 
-                if (dict.contains_key(&target_slot)) {
+                if dict.contains_key(&target_slot) {
                     let target_slot_dict = dict.get(&target_slot).unwrap();
 
                     let mut indexes = target_slot_dict.keys().collect::<Vec<&u32>>();
@@ -183,6 +191,29 @@ async fn listen_to_shredstream() -> io::Result<()> {
                     println!("min_index: {:?}", min_index);
                     println!("max_index: {:?}", max_index);
                     println!("missing_indexes: {:?}", missing_indexes);
+
+                    if missing_indexes.len() == 0 {
+                        println!("No missing indexes, deshredding");
+
+                        let data_shreds = indexes
+                            .iter()
+                            .map(|index| {
+                                let shred_data = target_slot_dict.get(index).unwrap();
+                                shred_data.clone() // Clone the Shred object
+                            })
+                            .collect::<Vec<Shred>>(); // Collect into Vec<Shred>
+
+                        println!("data_shreds: {:?}", data_shreds);
+
+                        let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
+
+                        println!("deshred_payload: {:?}", deshred_payload);
+
+                        let deshred_entries: Vec<Entry> =
+                            bincode::deserialize(&deshred_payload).unwrap();
+
+                        println!("deshred_entries: {:?}", deshred_entries);
+                    }
 
                     // let mut i = 0;
                     // for index in indexes {
