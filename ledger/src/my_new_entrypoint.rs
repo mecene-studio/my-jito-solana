@@ -46,7 +46,11 @@ extern crate lazy_static;
 #[macro_use]
 extern crate solana_frozen_abi_macro;
 
+use serde_json;
+use std::collections::HashMap;
+use std::fs::File;
 use std::io;
+use std::io::Write;
 use tokio::net::UdpSocket;
 
 #[tokio::main]
@@ -63,6 +67,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
     println!("Server listening on {}", addr);
 
     let mut i = 0;
+
+    let mut dict = HashMap::new();
 
     let mut buf = [0u8; 4096]; // Adjust buffer size as needed
     loop {
@@ -117,6 +123,11 @@ async fn listen_to_shredstream() -> io::Result<()> {
                             "Merkle shred_payload len {:?}",
                             merkle_shred_data.payload.len()
                         );
+
+                        let slot = merkle_shred_data.common_header.slot;
+                        let index = merkle_shred_data.common_header.index;
+
+                        dict.entry(slot).or_insert(Vec::new()).push(index);
                     }
                 },
             }
@@ -124,9 +135,14 @@ async fn listen_to_shredstream() -> io::Result<()> {
             // Handle the error case
             println!("Error deserializing shred: {:?}", e);
         }
-        // if i % 1000 == 0 {
-        //     println!("{}, {:?}, {:?}", i, shred);
-        // }
+        if i % 1000 == 0 {
+            println!("saving dict to file");
+            let serialized = serde_json::to_string(&dict).unwrap();
+
+            // Write the JSON string to a file
+            let mut file = File::create("dict.json").unwrap();
+            file.write_all(serialized.as_bytes()).unwrap();
+        }
 
         i += 1;
     }
