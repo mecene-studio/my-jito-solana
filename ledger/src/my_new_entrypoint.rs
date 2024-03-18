@@ -68,6 +68,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
     let mut i = 0;
 
+    const const SLOT_DELAY: u32 = 5;
+
     let mut current_slot = 0;
 
     let mut dict = HashMap::new();
@@ -161,8 +163,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
             // println!("dict: {:?}", dict);
 
-            if (current_slot > 3) {
-                let target_slot = current_slot - 3;
+            if (current_slot > SLOT_DELAY) {
+                let target_slot = current_slot - SLOT_DELAY;
 
                 if (dict.contains_key(&target_slot)) {
                     let target_slot_dict = dict.get(&target_slot).unwrap();
