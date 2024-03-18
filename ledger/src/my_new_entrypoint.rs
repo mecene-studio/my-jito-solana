@@ -47,7 +47,7 @@ extern crate lazy_static;
 extern crate solana_frozen_abi_macro;
 
 use serde_json;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io;
 use std::io::Write;
@@ -127,7 +127,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
                         let slot = merkle_shred_data.common_header.slot;
                         let index = merkle_shred_data.common_header.index;
 
-                        dict.entry(slot).or_insert(Vec::new()).push(index);
+                        dict.entry(slot).or_insert(HashSet::new()).insert(index);
                     }
                 },
             }
@@ -137,7 +137,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
         }
         if i % 1000 == 0 {
             println!("saving dict to file");
-            let serialized = serde_json::to_string(&dict).unwrap();
+            let serialized = serde_json::to_string_pretty(&dict).unwrap();
 
             // Write the JSON string to a file
             let mut file = File::create("dict.json").unwrap();
