@@ -68,6 +68,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
     let mut i = 0;
 
+    let mut current_slot = 0;
+
     let mut dict = HashMap::new();
 
     let mut buf = [0u8; 4096]; // Adjust buffer size as needed
@@ -127,12 +129,17 @@ async fn listen_to_shredstream() -> io::Result<()> {
                         let slot = merkle_shred_data.common_header.slot;
                         let index = merkle_shred_data.common_header.index;
 
-                        println!("slot: {:?}, index: {:?}", slot, index);
+                        // println!("slot: {:?}, index: {:?}", slot, index);
 
                         dict.entry(slot)
                             .or_insert(HashMap::new())
                             .entry(index)
                             .or_insert(merkle_shred_data);
+
+                        if slot > current_slot {
+                            current_slot = slot;
+                            println!("current_slot: {:?}", current_slot);
+                        }
                     }
                 },
             }
@@ -152,7 +159,23 @@ async fn listen_to_shredstream() -> io::Result<()> {
             // let mut file = File::create("dict.json").unwrap();
             // file.write_all(serialized.as_bytes()).unwrap();
 
-            println!("dict: {:?}", dict);
+            // println!("dict: {:?}", dict);
+
+            let target_slot = current_slot - 3;
+
+            if (dict.contains_key(&target_slot)) {
+                let target_slot_dict = dict.get(&target_slot).unwrap();
+
+                let mut indexes = target_slot_dict.keys().collect::<Vec<&u32>>();
+                indexes.sort();
+
+                let mut i = 0;
+                for index in indexes {
+                    let shred_data = target_slot_dict.get(index).unwrap();
+                    println!("index: {:?}, shred_data", index);
+                    i += 1;
+                }
+            }
         }
 
         i += 1;
