@@ -75,6 +75,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
     let mut current_slot = 0;
 
+    let mut slots_processed = 0;
+
     let mut dict = HashMap::new();
 
     let mut buf = [0u8; 4096]; // Adjust buffer size as needed
@@ -187,9 +189,10 @@ async fn listen_to_shredstream() -> io::Result<()> {
                         .filter(|j| !indexes.contains(&j))
                         .collect();
 
-                    println!("target_slot: {:?}", target_slot);
-                    println!("min_index: {:?}", min_index);
-                    println!("max_index: {:?}", max_index);
+                    println!(
+                        "target_slot: {:?}, min_index: {:?}, max_index: {:?}",
+                        target_slot, min_index, max_index
+                    );
                     println!("missing_indexes: {:?}", missing_indexes);
 
                     if missing_indexes.len() == 0 {
@@ -203,27 +206,38 @@ async fn listen_to_shredstream() -> io::Result<()> {
                             })
                             .collect::<Vec<Shred>>(); // Collect into Vec<Shred>
 
-                        println!(
-                            "data_shreds len: {:?}, example: {:?}",
-                            data_shreds.len(),
-                            data_shreds[0]
-                        );
+                        // println!(
+                        //     "data_shreds len: {:?}, example: {:?}",
+                        //     data_shreds.len(),
+                        //     data_shreds[0]
+                        // );
 
                         let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
 
-                        println!(
-                            "deshred_payload len: {:?}, example: {:?}",
-                            deshred_payload.len(),
-                            deshred_payload[0]
-                        );
+                        // println!(
+                        //     "deshred_payload len: {:?}, example: {:?}",
+                        //     deshred_payload.len(),
+                        //     deshred_payload[0]
+                        // );
 
                         let deshred_entries: Vec<Entry> =
                             bincode::deserialize(&deshred_payload).unwrap();
 
+                        // println!(
+                        //     "deshred_entries len: {:?}, example: {:?}",
+                        //     deshred_entries.len(),
+                        //     deshred_entries[0]
+                        // );
+
+                        let nb_txs: usize = deshred_entries
+                            .iter()
+                            .map(|entry| entry.transactions.len())
+                            .sum();
+
                         println!(
-                            "deshred_entries len: {:?}, example: {:?}",
+                            "nb entries: {:?}, nb_txs: {:?}",
                             deshred_entries.len(),
-                            deshred_entries[0]
+                            nb_txs
                         );
                     }
 
