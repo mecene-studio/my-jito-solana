@@ -51,9 +51,9 @@ extern crate solana_frozen_abi_macro;
 
 // use serde_json;
 use std::collections::HashMap;
-// use std::fs::File;
+use std::fs::File;
 use std::io;
-// use std::io::Write;
+use std::io::Write;
 use tokio::net::UdpSocket;
 
 #[tokio::main]
@@ -239,6 +239,12 @@ async fn listen_to_shredstream() -> io::Result<()> {
                             deshred_entries.len(),
                             nb_txs
                         );
+
+                        // write entries to file
+                        let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
+                        let file_name = format!("slots/entries_{}.json", target_slot);
+                        let mut file = std::fs::File::create(file_name).unwrap();
+                        file.write_all(serialized.as_bytes()).unwrap();
                     }
 
                     // let mut i = 0;
