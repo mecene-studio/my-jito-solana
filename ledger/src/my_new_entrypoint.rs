@@ -137,12 +137,13 @@ async fn listen_to_shredstream() -> io::Result<()> {
         }
         if i % 1000 == 0 {
             // Sort the indexes within each slot
-            let sorted_dict: HashMap<i32, Vec<i32>> = dict
+            let sorted_dict: HashMap<u64, Vec<u32>> = dict
+                .clone()
                 .into_iter()
                 .map(|(slot, indexes)| {
-                    let mut index_vec: Vec<i32> = indexes.into_iter().collect();
+                    let mut index_vec: Vec<u32> = indexes.into_iter().collect();
                     index_vec.sort();
-                    (slot, index_vec)
+                    (slot, index_vec) // Cast the slot to i32 if necessary
                 })
                 .collect();
 
