@@ -64,9 +64,9 @@ pub struct ShredData {
 // merkle tree. The root of merkle tree is signed.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ShredCode {
-    common_header: ShredCommonHeader,
-    coding_header: CodingShredHeader,
-    payload: Vec<u8>,
+    pub common_header: ShredCommonHeader,
+    pub coding_header: CodingShredHeader,
+    pub payload: Vec<u8>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

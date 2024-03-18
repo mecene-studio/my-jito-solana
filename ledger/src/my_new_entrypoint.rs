@@ -30,6 +30,7 @@ mod staking_utils;
 pub mod token_balances;
 pub mod use_snapshot_archives_at_startup;
 
+use crate::shred::ShredCode;
 use shred::Shred;
 
 #[macro_use]
@@ -68,10 +69,29 @@ async fn listen_to_shredstream() -> io::Result<()> {
         // println!("Server got: {} bytes from {}", nb_bytes, src);
 
         let shred_data = buf[..nb_bytes].to_vec();
-        let shred = Shred::new_from_serialized_shred(shred_data);
+        let shred_result = Shred::new_from_serialized_shred(shred_data);
 
-        println!("{}, {:?}", i, shred);
-
+        if let Ok(shred) = shred_result {
+            match shred {
+                Shred::ShredCode(shred_code) => match shred_code {
+                    ShredCode::Legacy(legacy_shred_code) => {
+                        // Access fields of `legacy_shred_code` if needed
+                    }
+                    ShredCode::Merkle(merkle_shred_code) => {
+                        // Access fields of `merkle_shred_code`
+                        println!("shred_common_header {:?}", merkle_shred_code.coding_header);
+                        println!("shred_coding_header {:?}", merkle_shred_code.coding_header);
+                        // println!("shred_payload len {:?}", merkle_shred_code.payload.len());
+                    }
+                },
+                Shred::ShredData(shred_data) => {
+                    // Handle ShredData variant if needed
+                }
+            }
+        } else if let Err(e) = shred_result {
+            // Handle the error case
+            println!("Error deserializing shred: {:?}", e);
+        }
         // if i % 1000 == 0 {
         //     println!("{}, {:?}, {:?}", i, shred);
         // }
