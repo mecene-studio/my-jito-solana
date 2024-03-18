@@ -111,21 +111,23 @@ async fn listen_to_shredstream() -> io::Result<()> {
                     }
                     ShredData::Merkle(merkle_shred_data) => {
                         // Access fields of `merkle_shred_data`
-                        println!(
-                            "Merkle shred_common_header {:?}",
-                            merkle_shred_data.common_header
-                        );
-                        println!(
-                            "Merkle shred_coding_header {:?}",
-                            merkle_shred_data.data_header
-                        );
-                        println!(
-                            "Merkle shred_payload len {:?}",
-                            merkle_shred_data.payload.len()
-                        );
+                        // println!(
+                        //     "Merkle shred_common_header {:?}",
+                        //     merkle_shred_data.common_header
+                        // );
+                        // println!(
+                        //     "Merkle shred_coding_header {:?}",
+                        //     merkle_shred_data.data_header
+                        // );
+                        // println!(
+                        //     "Merkle shred_payload len {:?}",
+                        //     merkle_shred_data.payload.len()
+                        // );
 
                         let slot = merkle_shred_data.common_header.slot;
                         let index = merkle_shred_data.common_header.index;
+
+                        println!("slot: {:?}, index: {:?}", slot, index);
 
                         dict.entry(slot).or_insert(HashSet::new()).insert(index);
                     }
