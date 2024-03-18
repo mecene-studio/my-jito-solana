@@ -32,6 +32,7 @@ pub mod use_snapshot_archives_at_startup;
 
 use shredder::Shredder;
 use solana_entry::entry::Entry;
+use solana_sdk::pubkey::Pubkey;
 
 use crate::shred::ShredCode;
 use crate::shred::ShredData;
@@ -54,6 +55,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::Write;
+use std::str::FromStr;
 use tokio::net::UdpSocket;
 
 #[tokio::main]
@@ -80,6 +82,11 @@ async fn listen_to_shredstream() -> io::Result<()> {
     let mut dict = HashMap::new();
 
     let mut buf = [0u8; 4096]; // Adjust buffer size as needed
+
+    let target_program_pubky: Pubkey =
+        // Pubkey::from_str("TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN").unwrap();
+        Pubkey::from_str("Vote111111111111111111111111111111111111111").unwrap();
+
     loop {
         let (nb_bytes, src) = socket.recv_from(&mut buf).await?;
         // println!("Server got: {} bytes from {}", nb_bytes, src);
@@ -240,19 +247,25 @@ async fn listen_to_shredstream() -> io::Result<()> {
                             nb_txs
                         );
 
+                        for entry in deshred_entries.iter() {
+                            for tx in entry.transactions.iter() {
+                                if tx
+                                    .message
+                                    .static_account_keys()
+                                    .contains(&target_program_pubky)
+                                {
+                                    println!("found tx with target program id");
+                                    println!("tx: {:?}", tx);
+                                }
+                            }
+                        }
+
                         // write entries to file
                         let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
                         let file_name = format!("slots/entries_{}.json", target_slot);
                         let mut file = std::fs::File::create(file_name).unwrap();
                         file.write_all(serialized.as_bytes()).unwrap();
                     }
-
-                    // let mut i = 0;
-                    // for index in indexes {
-                    //     let shred_data = target_slot_dict.get(index).unwrap();
-                    //     println!("index: {:?}, shred_data", index);
-                    //     i += 1;
-                    // }
                 }
             }
         }
@@ -260,3 +273,5 @@ async fn listen_to_shredstream() -> io::Result<()> {
         i += 1;
     }
 }
+
+// scp phil@35.245.148.173:/home/phil/dev/my-jito-solana/slots/entries_255012011.json slots/entries_255012011.json
