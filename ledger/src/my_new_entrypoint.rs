@@ -31,6 +31,7 @@ pub mod token_balances;
 pub mod use_snapshot_archives_at_startup;
 
 use crate::shred::ShredCode;
+use crate::shred::ShredData;
 use shred::Shred;
 
 #[macro_use]
@@ -86,9 +87,20 @@ async fn listen_to_shredstream() -> io::Result<()> {
                         // println!("shred_payload len {:?}", merkle_shred_code.payload.len());
                     }
                 },
-                Shred::ShredData(shred_data) => {
-                    // Handle ShredData variant if needed
-                }
+                Shred::ShredData(shred_data) => match shred_data {
+                    ShredData::Legacy(legacy_shred_data) => {
+                        // Access fields of `legacy_shred_data` if needed
+                        println!("shred_common_header {:?}", legacy_shred_data.common_header);
+                        println!("shred_coding_header {:?}", legacy_shred_data.data_header);
+                        println!("shred_payload len {:?}", legacy_shred_data.payload.len());
+                    }
+                    ShredData::Merkle(merkle_shred_data) => {
+                        // Access fields of `merkle_shred_data`
+                        println!("shred_common_header {:?}", merkle_shred_data.common_header);
+                        println!("shred_coding_header {:?}", merkle_shred_data.data_header);
+                        println!("shred_payload len {:?}", merkle_shred_data.payload.len());
+                    }
+                },
             }
         } else if let Err(e) = shred_result {
             // Handle the error case
