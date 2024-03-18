@@ -203,16 +203,28 @@ async fn listen_to_shredstream() -> io::Result<()> {
                             })
                             .collect::<Vec<Shred>>(); // Collect into Vec<Shred>
 
-                        println!("data_shreds: {:?}", data_shreds);
+                        println!(
+                            "data_shreds len: {:?}, example: {:?}",
+                            data_shreds.len(),
+                            data_shreds[0]
+                        );
 
                         let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
 
-                        println!("deshred_payload: {:?}", deshred_payload);
+                        println!(
+                            "deshred_payload len: {:?}, example: {:?}",
+                            deshred_payload.len(),
+                            deshred_payload[0]
+                        );
 
                         let deshred_entries: Vec<Entry> =
                             bincode::deserialize(&deshred_payload).unwrap();
 
-                        println!("deshred_entries: {:?}", deshred_entries);
+                        println!(
+                            "deshred_entries len: {:?}, example: {:?}",
+                            deshred_entries.len(),
+                            deshred_entries[0]
+                        );
                     }
 
                     // let mut i = 0;
