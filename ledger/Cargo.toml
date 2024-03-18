@@ -100,3 +100,7 @@ name = "blockstore"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
+
+[[bin]]
+name = "my_new_entrypoint"
+path = "src/my_new_entrypoint.rs"
