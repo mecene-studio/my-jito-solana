@@ -46,11 +46,11 @@ extern crate lazy_static;
 #[macro_use]
 extern crate solana_frozen_abi_macro;
 
-use serde_json;
+// use serde_json;
 use std::collections::HashMap;
-use std::fs::File;
+// use std::fs::File;
 use std::io;
-use std::io::Write;
+// use std::io::Write;
 use tokio::net::UdpSocket;
 
 #[tokio::main]
@@ -75,8 +75,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
         let (nb_bytes, src) = socket.recv_from(&mut buf).await?;
         // println!("Server got: {} bytes from {}", nb_bytes, src);
 
-        let shred_data = buf[..nb_bytes].to_vec();
-        let shred_result = Shred::new_from_serialized_shred(shred_data);
+        let shred_raw = buf[..nb_bytes].to_vec();
+        let shred_result = Shred::new_from_serialized_shred(shred_raw);
 
         if let Ok(shred) = shred_result {
             match shred {
@@ -132,7 +132,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
                         dict.entry(slot)
                             .or_insert(HashMap::new())
                             .entry(index)
-                            .or_insert(shred);
+                            .or_insert(merkle_shred_data);
                     }
                 },
             }
@@ -141,24 +141,18 @@ async fn listen_to_shredstream() -> io::Result<()> {
             println!("Error deserializing shred: {:?}", e);
         }
         if i % 1000 == 0 {
-            // Sort the indexes within each slot
-            let sorted_dict: HashMap<u64, HashMap<u32, Shred>> =
-                dict.clone().into_iter().map(|(slot, mut shred_map)| {
-                    let mut sorted_shred_map: HashMap<u32, Shred> = shred_map
-                        .drain()
-                        .map(|(index, shred)| (index, shred))
-                        .collect();
-                    (slot, sorted_shred_map)
-                });
+            // // Sort the indexes within each slot
 
-            // Serialize the sorted dictionary to a JSON string
-            let serialized = serde_json::to_string_pretty(&sorted_dict).unwrap();
+            // // Serialize the sorted dictionary to a JSON string
+            // let serialized = serde_json::to_string_pretty(&dict).unwrap();
 
-            println!("saving dict to file");
+            // println!("saving dict to file");
 
-            // Write the JSON string to a file
-            let mut file = File::create("dict.json").unwrap();
-            file.write_all(serialized.as_bytes()).unwrap();
+            // // Write the JSON string to a file
+            // let mut file = File::create("dict.json").unwrap();
+            // file.write_all(serialized.as_bytes()).unwrap();
+
+            println!("dict: {:?}", dict);
         }
 
         i += 1;
