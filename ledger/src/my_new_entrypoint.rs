@@ -76,6 +76,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
                 Shred::ShredCode(shred_code) => match shred_code {
                     ShredCode::Legacy(legacy_shred_code) => {
                         // Access fields of `legacy_shred_code` if needed
+                        println!("shred_common_header {:?}", legacy_shred_code.common_header);
+                        println!("shred_coding_header {:?}", legacy_shred_code.coding_header);
                     }
                     ShredCode::Merkle(merkle_shred_code) => {
                         // Access fields of `merkle_shred_code`
