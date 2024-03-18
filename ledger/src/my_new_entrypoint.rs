@@ -51,6 +51,7 @@ extern crate lazy_static;
 extern crate solana_frozen_abi_macro;
 
 // use serde_json;
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
@@ -254,8 +255,12 @@ async fn listen_to_shredstream() -> io::Result<()> {
                                     .static_account_keys()
                                     .contains(&target_program_pubky)
                                 {
-                                    let time_now = std::time::SystemTime::now();
-                                    println!("\nfound tx with target program id at {:?}", time_now);
+                                    let now: DateTime<Utc> = Utc::now();
+                                    let utc_string = now.to_rfc2822();
+                                    println!(
+                                        "\nfound tx with target program id at {:?}",
+                                        utc_string
+                                    );
                                     println!("tx: {:?}", tx);
                                 }
                             }
