@@ -253,6 +253,8 @@ fn deshred_from_dict(
     let target_program_pubky: Pubkey =
         Pubkey::from_str("TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN").unwrap();
 
+    println!("deshredding slot: {:?}", slot);
+
     if let Some(slot_dict) = dict.get(&slot) {
         let mut indexes = slot_dict
             .keys()
@@ -269,16 +271,16 @@ fn deshred_from_dict(
             .filter(|j| !indexes.contains(&j))
             .collect();
 
-        println!(
-            "slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
-            slot,
-            min_index,
-            max_index,
-            missing_indexes.len()
-        );
+        // println!(
+        //     "slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
+        //     slot,
+        //     min_index,
+        //     max_index,
+        //     missing_indexes.len()
+        // );
 
         if missing_indexes.len() == 0 {
-            println!("No missing indexes, deshredding");
+            // println!("No missing indexes, deshredding");
 
             let data_shreds = indexes
                 .iter()
@@ -314,9 +316,9 @@ fn deshred_from_dict(
                                 let utc_string =
                                     now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
                                 println!("\nfound tx with target program id at {:?}", utc_string);
-                                println!("tx: {:?}", tx);
+                                // println!("tx: {:?}", tx);
                                 let signature = tx.signatures[0];
-                                println!("signature: {:?}", signature);
+                                println!("tswap signature: {:?}", signature);
 
                                 // append signature and timestamp to file
                                 let mut tx_file = TX_FILE.lock().unwrap();
