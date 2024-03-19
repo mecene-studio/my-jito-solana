@@ -158,43 +158,17 @@ async fn listen_to_shredstream() -> io::Result<()> {
             //     },
             // }
 
-            if let Shred::ShredData(ref shred_data) = shred {
-                if let ShredData::Merkle(ref merkle_shred_data) = *shred_data {
+            if let Shred::ShredData(shred_data) = &shred {
+                if let ShredData::Merkle(merkle_shred_data) = shred_data {
                     let slot = merkle_shred_data.common_header.slot;
                     let index = merkle_shred_data.common_header.index;
 
-                    let flags = merkle_shred_data.data_header.flags;
-
-                    println!("slot: {:?}, index: {:?}, flags: {:?}", slot, index, flags);
-
-                    if flags & ShredFlags::DATA_COMPLETE_SHRED == ShredFlags::DATA_COMPLETE_SHRED {
-                        println!("DATA_COMPLETE_SHRED");
-
-                        // deshred up to this point
-                        deshred_from_dict(&dict, slot, index);
-                    }
-
                     // println!("slot: {:?}, index: {:?}", slot, index);
-
-                    // // deshred right away
-                    // let deshred_payload = Shredder::deshred(&[shred.clone()]).unwrap();
-                    // // println!("deshred_payload: {:?}", deshred_payload);
-
-                    // let deshred_entries: Result<Vec<Entry>, bincode::Error> =
-                    //     bincode::deserialize(&deshred_payload);
-
-                    // match deshred_entries {
-                    //     Ok(entries) => {
-                    //         println!("worked for slot: {:?} index: {:?}", slot, index);
-                    //         println!("entries: {:?}", entries);
-                    //     }
-                    //     Err(e) => {}
-                    // }
 
                     dict.entry(slot)
                         .or_insert_with(HashMap::new)
                         .entry(index)
-                        .or_insert(shred);
+                        .or_insert(shred.clone());
 
                     let now: DateTime<Utc> = Utc::now();
 
@@ -211,6 +185,17 @@ async fn listen_to_shredstream() -> io::Result<()> {
                     if slot > current_slot {
                         current_slot = slot;
                         println!("current_slot: {:?}", current_slot);
+                    }
+
+                    let flags = merkle_shred_data.data_header.flags;
+
+                    println!("slot: {:?}, index: {:?}, flags: {:?}", slot, index, flags);
+
+                    if flags & ShredFlags::DATA_COMPLETE_SHRED == ShredFlags::DATA_COMPLETE_SHRED {
+                        println!("DATA_COMPLETE_SHRED");
+
+                        // deshred up to this point
+                        deshred_from_dict(&dict, slot, index);
                     }
                 }
             }
@@ -250,17 +235,19 @@ fn deshred_from_dict(dict: &HashMap<u64, HashMap<u32, Shred>>, slot: u64, arg_ma
 
     let mut tx_file: File = File::create("txs.log").unwrap();
 
-    if dict.contains_key(&slot) {
-        let slot_dict = dict.get(&slot).unwrap();
+    if let Some(slot_dict) = dict.get(&slot) {
+        let mut indexes = slot_dict
+            .keys()
+            .filter(|&&index| index <= arg_max_index) // Filter indexes based on arg_max_index
+            .cloned() // Clone the keys to create a Vec<u32> instead of Vec<&u32>
+            .collect::<Vec<u32>>();
 
-        let mut indexes = slot_dict.keys().collect::<Vec<&u32>>();
         indexes.sort();
 
         let min_index = indexes[0];
         let max_index = indexes[indexes.len() - 1];
-        let real_max_index = std::cmp::min(*max_index, arg_max_index);
 
-        let missing_indexes: Vec<u32> = (*min_index..=real_max_index)
+        let missing_indexes: Vec<u32> = (min_index..=max_index)
             .filter(|j| !indexes.contains(&j))
             .collect();
 
@@ -268,7 +255,7 @@ fn deshred_from_dict(dict: &HashMap<u64, HashMap<u32, Shred>>, slot: u64, arg_ma
             "slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
             slot,
             min_index,
-            real_max_index,
+            max_index,
             missing_indexes.len()
         );
 
