@@ -65,6 +65,13 @@ async fn main() -> io::Result<()> {
     listen_to_shredstream().await
 }
 
+#[derive(Debug)]
+struct SlotInfo {
+    min_time: DateTime<Utc>,
+    max_time: DateTime<Utc>,
+    num_shreds: usize,
+}
+
 async fn listen_to_shredstream() -> io::Result<()> {
     let port = 8001;
     let host = "0.0.0.0"; // Listen on all available interfaces
@@ -82,6 +89,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
     let mut processed_slot = 0;
 
     let mut dict: HashMap<u64, HashMap<u32, Shred>> = HashMap::new();
+
+    let mut slots_dict = HashMap::new();
 
     let mut buf = [0u8; 4096]; // Adjust buffer size as needed
 
@@ -175,6 +184,18 @@ async fn listen_to_shredstream() -> io::Result<()> {
                         .entry(index)
                         .or_insert(shred);
 
+                    let now: DateTime<Utc> = Utc::now();
+
+                    let slot_info = slots_dict.entry(slot).or_insert(SlotInfo {
+                        min_time: now,
+                        max_time: now,
+                        num_shreds: 0,
+                    });
+
+                    slot_info.num_shreds += 1;
+                    slot_info.min_time = std::cmp::min(slot_info.min_time, now);
+                    slot_info.max_time = std::cmp::max(slot_info.max_time, now);
+
                     if slot > current_slot {
                         current_slot = slot;
                         println!("current_slot: {:?}", current_slot);
@@ -201,6 +222,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
         if current_slot > processed_slot + SLOT_DELAY {
             processed_slot = current_slot - SLOT_DELAY;
+
+            println!("slots_dict: {:?}", slots_dict);
 
             if dict.contains_key(&processed_slot) {
                 let processed_slot_dict = dict.get(&processed_slot).unwrap();
