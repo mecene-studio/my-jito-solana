@@ -227,7 +227,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
         if current_slot > processed_slot + SLOT_DELAY {
             processed_slot = current_slot - SLOT_DELAY;
 
-            println!("slots_dict: {:?}", slots_dict);
+            // println!("slots_dict: {:?}", slots_dict);
 
             if dict.contains_key(&processed_slot) {
                 let processed_slot_dict = dict.get(&processed_slot).unwrap();
