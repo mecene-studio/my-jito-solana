@@ -192,7 +192,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
                     // println!("slot: {:?}, index: {:?}, flags: {:?}", slot, index, flags);
 
                     if flags & ShredFlags::DATA_COMPLETE_SHRED == ShredFlags::DATA_COMPLETE_SHRED {
-                        println!("DATA_COMPLETE_SHRED");
+                        // println!("DATA_COMPLETE_SHRED");
 
                         // deshred up to this point
                         deshred_from_dict(&dict, slot, index);
