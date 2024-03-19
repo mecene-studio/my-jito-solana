@@ -78,7 +78,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
     let mut current_slot = 0;
 
-    let mut slots_processed = 0;
+    let mut processed_slot = 0;
 
     let mut dict = HashMap::new();
 
@@ -167,114 +167,113 @@ async fn listen_to_shredstream() -> io::Result<()> {
             // Handle the error case
             println!("Error deserializing shred: {:?}", e);
         }
-        if i % 1000 == 0 {
-            // // Sort the indexes within each slot
 
-            // // Serialize the sorted dictionary to a JSON string
-            // let serialized = serde_json::to_string_pretty(&dict).unwrap();
+        // // Sort the indexes within each slot
 
-            // println!("saving dict to file");
+        // // Serialize the sorted dictionary to a JSON string
+        // let serialized = serde_json::to_string_pretty(&dict).unwrap();
 
-            // // Write the JSON string to a file
-            // let mut file = File::create("dict.json").unwrap();
-            // file.write_all(serialized.as_bytes()).unwrap();
+        // println!("saving dict to file");
 
-            // println!("dict: {:?}", dict);
+        // // Write the JSON string to a file
+        // let mut file = File::create("dict.json").unwrap();
+        // file.write_all(serialized.as_bytes()).unwrap();
 
-            if current_slot > SLOT_DELAY {
-                let target_slot = current_slot - SLOT_DELAY;
+        // println!("dict: {:?}", dict);
 
-                if dict.contains_key(&target_slot) {
-                    let target_slot_dict = dict.get(&target_slot).unwrap();
+        if current_slot > processed_slot + SLOT_DELAY {
+            processed_slot = current_slot - SLOT_DELAY;
 
-                    let mut indexes = target_slot_dict.keys().collect::<Vec<&u32>>();
-                    indexes.sort();
+            if dict.contains_key(&processed_slot) {
+                let processed_slot_dict = dict.get(&processed_slot).unwrap();
 
-                    let min_index = indexes[0];
-                    let max_index = indexes[indexes.len() - 1];
+                let mut indexes = processed_slot_dict.keys().collect::<Vec<&u32>>();
+                indexes.sort();
 
-                    let missing_indexes: Vec<u32> = (*min_index..=*max_index)
-                        .filter(|j| !indexes.contains(&j))
-                        .collect();
+                let min_index = indexes[0];
+                let max_index = indexes[indexes.len() - 1];
 
-                    println!(
-                        "target_slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
-                        target_slot, min_index, max_index, missing_indexes.len()
-                    );
+                let missing_indexes: Vec<u32> = (*min_index..=*max_index)
+                    .filter(|j| !indexes.contains(&j))
+                    .collect();
 
-                    if missing_indexes.len() == 0 {
-                        // println!("No missing indexes, deshredding");
+                println!(
+                    "processed_slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
+                    processed_slot,
+                    min_index,
+                    max_index,
+                    missing_indexes.len()
+                );
 
-                        let data_shreds = indexes
-                            .iter()
-                            .map(|index| {
-                                let shred_data = target_slot_dict.get(index).unwrap();
-                                shred_data.clone() // Clone the Shred object
-                            })
-                            .collect::<Vec<Shred>>(); // Collect into Vec<Shred>
+                if missing_indexes.len() == 0 {
+                    // println!("No missing indexes, deshredding");
 
-                        // println!(
-                        //     "data_shreds len: {:?}, example: {:?}",
-                        //     data_shreds.len(),
-                        //     data_shreds[0]
-                        // );
+                    let data_shreds = indexes
+                        .iter()
+                        .map(|index| {
+                            let shred_data = processed_slot_dict.get(index).unwrap();
+                            shred_data.clone() // Clone the Shred object
+                        })
+                        .collect::<Vec<Shred>>(); // Collect into Vec<Shred>
 
-                        let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
+                    // println!(
+                    //     "data_shreds len: {:?}, example: {:?}",
+                    //     data_shreds.len(),
+                    //     data_shreds[0]
+                    // );
 
-                        // println!(
-                        //     "deshred_payload len: {:?}, example: {:?}",
-                        //     deshred_payload.len(),
-                        //     deshred_payload[0]
-                        // );
+                    let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
 
-                        let deshred_entries: Vec<Entry> =
-                            bincode::deserialize(&deshred_payload).unwrap();
+                    // println!(
+                    //     "deshred_payload len: {:?}, example: {:?}",
+                    //     deshred_payload.len(),
+                    //     deshred_payload[0]
+                    // );
 
-                        // println!(
-                        //     "deshred_entries len: {:?}, example: {:?}",
-                        //     deshred_entries.len(),
-                        //     deshred_entries[0]
-                        // );
+                    let deshred_entries: Vec<Entry> =
+                        bincode::deserialize(&deshred_payload).unwrap();
 
-                        let nb_txs: usize = deshred_entries
-                            .iter()
-                            .map(|entry| entry.transactions.len())
-                            .sum();
+                    // println!(
+                    //     "deshred_entries len: {:?}, example: {:?}",
+                    //     deshred_entries.len(),
+                    //     deshred_entries[0]
+                    // );
 
-                        println!(
-                            "nb entries: {:?}, nb_txs: {:?}",
-                            deshred_entries.len(),
-                            nb_txs
-                        );
+                    let nb_txs: usize = deshred_entries
+                        .iter()
+                        .map(|entry| entry.transactions.len())
+                        .sum();
 
-                        for entry in deshred_entries.iter() {
-                            for tx in entry.transactions.iter() {
-                                if tx
-                                    .message
-                                    .static_account_keys()
-                                    .contains(&target_program_pubky)
-                                {
-                                    let now: DateTime<Utc> = Utc::now();
-                                    let utc_string =
-                                        now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
-                                    println!(
-                                        "\nfound tx with target program id at {:?}",
-                                        utc_string
-                                    );
-                                    println!("tx: {:?}", tx);
-                                }
+                    // println!(
+                    //     "nb entries: {:?}, nb_txs: {:?}",
+                    //     deshred_entries.len(),
+                    //     nb_txs
+                    // );
+
+                    for entry in deshred_entries.iter() {
+                        for tx in entry.transactions.iter() {
+                            if tx
+                                .message
+                                .static_account_keys()
+                                .contains(&target_program_pubky)
+                            {
+                                let now: DateTime<Utc> = Utc::now();
+                                let utc_string =
+                                    now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
+                                println!("\nfound tx with target program id at {:?}", utc_string);
+                                println!("tx: {:?}", tx);
                             }
                         }
-
-                        // write entries to file
-                        let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
-                        let file_name = format!("slots/entries_{}.json", target_slot);
-                        let mut file = std::fs::File::create(file_name).unwrap();
-                        file.write_all(serialized.as_bytes()).unwrap();
                     }
-                } else {
-                    println!("target_slot: {:?} not found", target_slot);
+
+                    // write entries to file
+                    let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
+                    let file_name = format!("slots/entries_{}.json", processed_slot);
+                    let mut file = std::fs::File::create(file_name).unwrap();
+                    file.write_all(serialized.as_bytes()).unwrap();
                 }
+            } else {
+                println!("processed_slot: {:?} not found", processed_slot);
             }
         }
 
