@@ -272,33 +272,42 @@ fn deshred_from_dict(dict: &HashMap<u64, HashMap<u32, Shred>>, slot: u64, arg_ma
 
             let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
 
-            let deshred_entries: Vec<Entry> = bincode::deserialize(&deshred_payload).unwrap();
+            let maybe_deshred_entries: Result<Vec<Entry>, bincode::Error> =
+                bincode::deserialize(&deshred_payload);
 
-            let nb_txs: usize = deshred_entries
-                .iter()
-                .map(|entry| entry.transactions.len())
-                .sum();
+            match maybe_deshred_entries {
+                Err(e) => println!("Error deserializing entries: {}", e),
+                Ok(deshred_entries) => {
+                    let nb_txs: usize = deshred_entries
+                        .iter()
+                        .map(|entry| entry.transactions.len())
+                        .sum();
 
-            println!("deshredded txs: {:?}", nb_txs);
+                    println!("deshredded txs: {:?}", nb_txs);
 
-            for entry in deshred_entries.iter() {
-                for tx in entry.transactions.iter() {
-                    if tx
-                        .message
-                        .static_account_keys()
-                        .contains(&target_program_pubky)
-                    {
-                        let now: DateTime<Utc> = Utc::now();
-                        let utc_string = now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
-                        println!("\nfound tx with target program id at {:?}", utc_string);
-                        println!("tx: {:?}", tx);
-                        let signature = tx.signatures[0];
-                        println!("signature: {:?}", signature);
+                    for entry in deshred_entries.iter() {
+                        for tx in entry.transactions.iter() {
+                            if tx
+                                .message
+                                .static_account_keys()
+                                .contains(&target_program_pubky)
+                            {
+                                let now: DateTime<Utc> = Utc::now();
+                                let utc_string =
+                                    now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
+                                println!("\nfound tx with target program id at {:?}", utc_string);
+                                println!("tx: {:?}", tx);
+                                let signature = tx.signatures[0];
+                                println!("signature: {:?}", signature);
 
-                        // append signature and timestamp to file
-                        tx_file
-                            .write_all(format!("{:?} {:?}\n", signature, utc_string).as_bytes())
-                            .unwrap();
+                                // append signature and timestamp to file
+                                tx_file
+                                    .write_all(
+                                        format!("{:?} {:?}\n", signature, utc_string).as_bytes(),
+                                    )
+                                    .unwrap();
+                            }
+                        }
                     }
                 }
             }
