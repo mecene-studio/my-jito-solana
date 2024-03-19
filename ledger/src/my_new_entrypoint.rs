@@ -162,6 +162,10 @@ async fn listen_to_shredstream() -> io::Result<()> {
                     let slot = merkle_shred_data.common_header.slot;
                     let index = merkle_shred_data.common_header.index;
 
+                    let flags = merkle_shred_data.data_header.flags;
+
+                    println!("slot: {:?}, index: {:?}, flags: {:?}", slot, index, flags);
+
                     // println!("slot: {:?}, index: {:?}", slot, index);
 
                     // // deshred right away
