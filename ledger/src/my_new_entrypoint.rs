@@ -163,7 +163,10 @@ async fn listen_to_shredstream() -> io::Result<()> {
                         bincode::deserialize(&deshred_payload);
 
                     match deshred_entries {
-                        Ok(entries) => println!("deshred_entries: {:?}", entries),
+                        Ok(entries) => {
+                            println!("worked for slot: {:?} index: {:?}", slot, index);
+                            println!("entries: {:?}", entries);
+                        }
                         Err(e) => {}
                     }
 
