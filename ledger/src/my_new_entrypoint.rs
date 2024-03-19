@@ -74,7 +74,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
     let mut i = 0;
 
-    const SLOT_DELAY: u64 = 5;
+    const SLOT_DELAY: u64 = 2;
 
     let mut current_slot = 0;
 
