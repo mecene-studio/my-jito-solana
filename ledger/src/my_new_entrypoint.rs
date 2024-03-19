@@ -260,7 +260,7 @@ fn deshred_from_dict(dict: &HashMap<u64, HashMap<u32, Shred>>, slot: u64, arg_ma
         );
 
         if missing_indexes.len() == 0 {
-            // println!("No missing indexes, deshredding");
+            println!("No missing indexes, deshredding");
 
             let data_shreds = indexes
                 .iter()
@@ -278,6 +278,8 @@ fn deshred_from_dict(dict: &HashMap<u64, HashMap<u32, Shred>>, slot: u64, arg_ma
                 .iter()
                 .map(|entry| entry.transactions.len())
                 .sum();
+
+            println!("deshredded txs: {:?}", nb_txs);
 
             for entry in deshred_entries.iter() {
                 for tx in entry.transactions.iter() {
