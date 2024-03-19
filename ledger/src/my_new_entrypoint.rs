@@ -1,5 +1,9 @@
 #![cfg_attr(RUSTC_WITH_SPECIALIZATION, feature(min_specialization))]
 #![allow(clippy::arithmetic_side_effects)]
+// ignore unused variables in tests
+#![allow(unused_variables)]
+#![allow(unused_mut)]
+#![allow(unused_imports)]
 
 pub mod bank_forks_utils;
 pub mod bigtable_delete;
@@ -95,10 +99,6 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
     let mut buf = [0u8; 4096]; // Adjust buffer size as needed
 
-    let mut tx_file = File::create("txs.log").unwrap();
-
-    let target_program_pubky: Pubkey =
-        Pubkey::from_str("TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN").unwrap();
     // Pubkey::from_str("Vote111111111111111111111111111111111111111").unwrap();
 
     loop {
@@ -167,9 +167,11 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
                     println!("slot: {:?}, index: {:?}, flags: {:?}", slot, index, flags);
 
-                    if (flags & ShredFlags::DATA_COMPLETE_SHRED == ShredFlags::DATA_COMPLETE_SHRED)
-                    {
+                    if flags & ShredFlags::DATA_COMPLETE_SHRED == ShredFlags::DATA_COMPLETE_SHRED {
                         println!("DATA_COMPLETE_SHRED");
+
+                        // deshred up to this point
+                        deshred_from_dict(&dict, slot, index);
                     }
 
                     // println!("slot: {:?}, index: {:?}", slot, index);
@@ -230,91 +232,95 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
         // println!("dict: {:?}", dict);
 
-        if current_slot > processed_slot + SLOT_DELAY {
-            processed_slot = current_slot - SLOT_DELAY;
+        // if current_slot > processed_slot + SLOT_DELAY {
+        //     processed_slot = current_slot - SLOT_DELAY;
 
-            // println!("slots_dict: {:?}", slots_dict);
-
-            if dict.contains_key(&processed_slot) {
-                let processed_slot_dict = dict.get(&processed_slot).unwrap();
-
-                let mut indexes = processed_slot_dict.keys().collect::<Vec<&u32>>();
-                indexes.sort();
-
-                let min_index = indexes[0];
-                let max_index = indexes[indexes.len() - 1];
-
-                let missing_indexes: Vec<u32> = (*min_index..=*max_index)
-                    .filter(|j| !indexes.contains(&j))
-                    .collect();
-
-                println!(
-                    "processed_slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
-                    processed_slot,
-                    min_index,
-                    max_index,
-                    missing_indexes.len()
-                );
-
-                if missing_indexes.len() == 0 {
-                    // println!("No missing indexes, deshredding");
-
-                    let data_shreds = indexes
-                        .iter()
-                        .map(|index| {
-                            let shred_data = processed_slot_dict.get(index).unwrap();
-                            shred_data.clone() // Clone the Shred object
-                        })
-                        .collect::<Vec<Shred>>(); // Collect into Vec<Shred>
-
-                    let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
-
-                    let deshred_entries: Vec<Entry> =
-                        bincode::deserialize(&deshred_payload).unwrap();
-
-                    let nb_txs: usize = deshred_entries
-                        .iter()
-                        .map(|entry| entry.transactions.len())
-                        .sum();
-
-                    for entry in deshred_entries.iter() {
-                        for tx in entry.transactions.iter() {
-                            if tx
-                                .message
-                                .static_account_keys()
-                                .contains(&target_program_pubky)
-                            {
-                                let now: DateTime<Utc> = Utc::now();
-                                let utc_string =
-                                    now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
-                                println!("\nfound tx with target program id at {:?}", utc_string);
-                                println!("tx: {:?}", tx);
-                                let signature = tx.signatures[0];
-                                println!("signature: {:?}", signature);
-
-                                // append signature and timestamp to file
-                                tx_file
-                                    .write_all(
-                                        format!("{:?} {:?}\n", signature, utc_string).as_bytes(),
-                                    )
-                                    .unwrap();
-                            }
-                        }
-                    }
-
-                    // // write entries to file
-                    // let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
-                    // let file_name = format!("slots/entries_{}.json", processed_slot);
-                    // let mut file = std::fs::File::create(file_name).unwrap();
-                    // file.write_all(serialized.as_bytes()).unwrap();
-                }
-            } else {
-                println!("processed_slot: {:?} not found", processed_slot);
-            }
-        }
+        //     // println!("slots_dict: {:?}", slots_dict);
+        // }
 
         i += 1;
     }
 }
 
 // scp phil@35.245.148.173:/home/phil/dev/my-jito-solana/slots/entries_255012011.json slots/entries_255012011.json
+
+fn deshred_from_dict(dict: &HashMap<u64, HashMap<u32, Shred>>, slot: u64, arg_max_index: u32) {
+    let target_program_pubky: Pubkey =
+        Pubkey::from_str("TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN").unwrap();
+
+    let mut tx_file: File = File::create("txs.log").unwrap();
+
+    if dict.contains_key(&slot) {
+        let slot_dict = dict.get(&slot).unwrap();
+
+        let mut indexes = slot_dict.keys().collect::<Vec<&u32>>();
+        indexes.sort();
+
+        let min_index = indexes[0];
+        let max_index = indexes[indexes.len() - 1];
+        let real_max_index = std::cmp::min(*max_index, arg_max_index);
+
+        let missing_indexes: Vec<u32> = (*min_index..=real_max_index)
+            .filter(|j| !indexes.contains(&j))
+            .collect();
+
+        println!(
+            "slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
+            slot,
+            min_index,
+            real_max_index,
+            missing_indexes.len()
+        );
+
+        if missing_indexes.len() == 0 {
+            // println!("No missing indexes, deshredding");
+
+            let data_shreds = indexes
+                .iter()
+                .map(|index| {
+                    let shred_data = slot_dict.get(index).unwrap();
+                    shred_data.clone() // Clone the Shred object
+                })
+                .collect::<Vec<Shred>>(); // Collect into Vec<Shred>
+
+            let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
+
+            let deshred_entries: Vec<Entry> = bincode::deserialize(&deshred_payload).unwrap();
+
+            let nb_txs: usize = deshred_entries
+                .iter()
+                .map(|entry| entry.transactions.len())
+                .sum();
+
+            for entry in deshred_entries.iter() {
+                for tx in entry.transactions.iter() {
+                    if tx
+                        .message
+                        .static_account_keys()
+                        .contains(&target_program_pubky)
+                    {
+                        let now: DateTime<Utc> = Utc::now();
+                        let utc_string = now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
+                        println!("\nfound tx with target program id at {:?}", utc_string);
+                        println!("tx: {:?}", tx);
+                        let signature = tx.signatures[0];
+                        println!("signature: {:?}", signature);
+
+                        // append signature and timestamp to file
+                        tx_file
+                            .write_all(format!("{:?} {:?}\n", signature, utc_string).as_bytes())
+                            .unwrap();
+                    }
+                }
+            }
+
+            // // write entries to file
+            // let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
+            // let file_name = format!("slots/entries_{}.json", processed_slot);
+            // let mut file = std::fs::File::create(file_name).unwrap();
+            // file.write_all(serialized.as_bytes()).unwrap();
+        }
+    } else {
+        println!("slot: {:?} not found", slot);
+    }
+}

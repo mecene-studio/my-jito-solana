@@ -389,15 +389,15 @@ impl Shredder {
 
     /// Combines all shreds to recreate the original buffer
     pub fn deshred(shreds: &[Shred]) -> Result<Vec<u8>, Error> {
-        // let index = shreds.first().ok_or(TooFewDataShards)?.index();
-        // let aligned = shreds.iter().zip(index..).all(|(s, i)| s.index() == i);
-        // let data_complete = {
-        //     let shred = shreds.last().unwrap();
-        //     shred.data_complete() || shred.last_in_slot()
-        // };
-        // if !data_complete || !aligned {
-        //     return Err(Error::from(TooFewDataShards));
-        // }
+        let index = shreds.first().ok_or(TooFewDataShards)?.index();
+        let aligned = shreds.iter().zip(index..).all(|(s, i)| s.index() == i);
+        let data_complete = {
+            let shred = shreds.last().unwrap();
+            shred.data_complete() || shred.last_in_slot()
+        };
+        if !data_complete || !aligned {
+            return Err(Error::from(TooFewDataShards));
+        }
         let data: Vec<_> = shreds.iter().map(Shred::data).collect::<Result<_, _>>()?;
         let data: Vec<_> = data.into_iter().flatten().copied().collect();
         if data.is_empty() {
