@@ -157,8 +157,10 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
                     // deshred right away
                     let deshred_payload = Shredder::deshred(&[shred.clone()]).unwrap();
+                    println!("deshred_payload: {:?}", deshred_payload);
                     let deshred_entries: Vec<Entry> =
                         bincode::deserialize(&deshred_payload).unwrap();
+                    println!("deshred_entries: {:?}", deshred_entries);
 
                     for entry in deshred_entries.iter() {
                         for tx in entry.transactions.iter() {
