@@ -85,6 +85,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
     let mut buf = [0u8; 4096]; // Adjust buffer size as needed
 
+    let mut tx_file = File::create("txs.log").unwrap();
+
     let target_program_pubky: Pubkey =
         Pubkey::from_str("TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN").unwrap();
     // Pubkey::from_str("Vote111111111111111111111111111111111111111").unwrap();
@@ -265,15 +267,22 @@ async fn listen_to_shredstream() -> io::Result<()> {
                                 println!("tx: {:?}", tx);
                                 let signature = tx.signatures[0];
                                 println!("signature: {:?}", signature);
+
+                                // append signature and timestamp to file
+                                tx_file
+                                    .write_all(
+                                        format!("{:?}, {:?}\n", signature, utc_string).as_bytes(),
+                                    )
+                                    .unwrap();
                             }
                         }
                     }
 
-                    // write entries to file
-                    let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
-                    let file_name = format!("slots/entries_{}.json", processed_slot);
-                    let mut file = std::fs::File::create(file_name).unwrap();
-                    file.write_all(serialized.as_bytes()).unwrap();
+                    // // write entries to file
+                    // let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
+                    // let file_name = format!("slots/entries_{}.json", processed_slot);
+                    // let mut file = std::fs::File::create(file_name).unwrap();
+                    // file.write_all(serialized.as_bytes()).unwrap();
                 }
             } else {
                 println!("processed_slot: {:?} not found", processed_slot);
