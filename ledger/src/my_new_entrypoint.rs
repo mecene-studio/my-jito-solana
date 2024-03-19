@@ -37,6 +37,7 @@ use solana_sdk::signature;
 
 use crate::shred::ShredCode;
 use crate::shred::ShredData;
+use crate::shred::ShredFlags;
 use shred::Shred;
 
 #[macro_use]
@@ -165,6 +166,11 @@ async fn listen_to_shredstream() -> io::Result<()> {
                     let flags = merkle_shred_data.data_header.flags;
 
                     println!("slot: {:?}, index: {:?}, flags: {:?}", slot, index, flags);
+
+                    if (flags & ShredFlags::DATA_COMPLETE_SHRED == ShredFlags::DATA_COMPLETE_SHRED)
+                    {
+                        println!("DATA_COMPLETE_SHRED");
+                    }
 
                     // println!("slot: {:?}, index: {:?}", slot, index);
 
