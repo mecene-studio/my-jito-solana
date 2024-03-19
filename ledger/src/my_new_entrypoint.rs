@@ -198,13 +198,12 @@ async fn listen_to_shredstream() -> io::Result<()> {
                         .collect();
 
                     println!(
-                        "target_slot: {:?}, min_index: {:?}, max_index: {:?}",
-                        target_slot, min_index, max_index
+                        "target_slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
+                        target_slot, min_index, max_index, missing_indexes.len()
                     );
-                    println!("missing_indexes: {:?}", missing_indexes);
 
                     if missing_indexes.len() == 0 {
-                        println!("No missing indexes, deshredding");
+                        // println!("No missing indexes, deshredding");
 
                         let data_shreds = indexes
                             .iter()
@@ -256,7 +255,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
                                     .contains(&target_program_pubky)
                                 {
                                     let now: DateTime<Utc> = Utc::now();
-                                    let utc_string = now.to_rfc2822();
+                                    let utc_string =
+                                        now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
                                     println!(
                                         "\nfound tx with target program id at {:?}",
                                         utc_string
@@ -272,6 +272,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
                         let mut file = std::fs::File::create(file_name).unwrap();
                         file.write_all(serialized.as_bytes()).unwrap();
                     }
+                } else {
+                    println!("target_slot: {:?} not found", target_slot);
                 }
             }
         }
