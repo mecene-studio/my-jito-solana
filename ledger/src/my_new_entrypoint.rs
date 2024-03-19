@@ -253,7 +253,7 @@ fn deshred_from_dict(
     let target_program_pubky: Pubkey =
         Pubkey::from_str("TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN").unwrap();
 
-    println!("deshredding slot: {:?}", slot);
+    // println!("deshredding slot: {:?}", slot);
 
     if let Some(slot_dict) = dict.get(&slot) {
         let mut indexes = slot_dict
