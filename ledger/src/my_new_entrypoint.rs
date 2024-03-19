@@ -271,7 +271,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
                                 // append signature and timestamp to file
                                 tx_file
                                     .write_all(
-                                        format!("{:?}, {:?}\n", signature, utc_string).as_bytes(),
+                                        format!("{:?} {:?}\n", signature, utc_string).as_bytes(),
                                     )
                                     .unwrap();
                             }
