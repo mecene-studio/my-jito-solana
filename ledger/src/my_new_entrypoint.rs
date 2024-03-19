@@ -303,7 +303,7 @@ fn deshred_from_dict(
                         .map(|entry| entry.transactions.len())
                         .sum();
 
-                    println!("deshredded txs: {:?}", nb_txs);
+                    // println!("deshredded txs: {:?}", nb_txs);
 
                     for entry in deshred_entries.iter() {
                         for tx in entry.transactions.iter() {
@@ -315,10 +315,10 @@ fn deshred_from_dict(
                                 let now: DateTime<Utc> = Utc::now();
                                 let utc_string =
                                     now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
-                                println!("\nfound tx with target program id at {:?}", utc_string);
+                                // println!("\nfound tx with target program id at {:?}", utc_string);
                                 // println!("tx: {:?}", tx);
                                 let signature = tx.signatures[0];
-                                println!("tswap signature: {:?}", signature);
+                                println!("tswap signature: {:?} at {:?}", signature, utc_string);
 
                                 // append signature and timestamp to file
                                 let mut tx_file = TX_FILE.lock().unwrap();
