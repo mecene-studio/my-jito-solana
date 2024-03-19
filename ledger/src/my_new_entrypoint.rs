@@ -75,13 +75,13 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
     let mut i = 0;
 
-    const SLOT_DELAY: u64 = 2;
+    const SLOT_DELAY: u64 = 1;
 
     let mut current_slot = 0;
 
     let mut processed_slot = 0;
 
-    // let mut dict = HashMap::new();
+    let mut dict: HashMap<u64, HashMap<u32, Shred>> = HashMap::new();
 
     let mut buf = [0u8; 4096]; // Adjust buffer size as needed
 
@@ -155,55 +155,30 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
                     // println!("slot: {:?}, index: {:?}", slot, index);
 
-                    // deshred right away
-                    let deshred_payload = Shredder::deshred(&[shred.clone()]).unwrap();
-                    // println!("deshred_payload: {:?}", deshred_payload);
+                    // // deshred right away
+                    // let deshred_payload = Shredder::deshred(&[shred.clone()]).unwrap();
+                    // // println!("deshred_payload: {:?}", deshred_payload);
 
-                    let deshred_entries: Result<Vec<Entry>, bincode::Error> =
-                        bincode::deserialize(&deshred_payload);
+                    // let deshred_entries: Result<Vec<Entry>, bincode::Error> =
+                    //     bincode::deserialize(&deshred_payload);
 
-                    match deshred_entries {
-                        Ok(entries) => {
-                            println!("worked for slot: {:?} index: {:?}", slot, index);
-                            println!("entries: {:?}", entries);
-                        }
-                        Err(e) => {}
-                    }
-
-                    // for entry in deshred_entries.iter() {
-                    //     for tx in entry.transactions.iter() {
-                    //         if tx
-                    //             .message
-                    //             .static_account_keys()
-                    //             .contains(&target_program_pubky)
-                    //         {
-                    //             let now: DateTime<Utc> = Utc::now();
-                    //             let utc_string =
-                    //                 now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
-                    //             println!("\nfound tx with target program id at {:?}", utc_string);
-                    //             println!("tx: {:?}", tx);
-                    //             let signature = tx.signatures[0];
-                    //             println!("signature: {:?}", signature);
-
-                    //             // append signature and timestamp to file
-                    //             tx_file
-                    //                 .write_all(
-                    //                     format!("{:?} {:?}\n", signature, utc_string).as_bytes(),
-                    //                 )
-                    //                 .unwrap();
-                    //         }
+                    // match deshred_entries {
+                    //     Ok(entries) => {
+                    //         println!("worked for slot: {:?} index: {:?}", slot, index);
+                    //         println!("entries: {:?}", entries);
                     //     }
+                    //     Err(e) => {}
                     // }
 
-                    // dict.entry(slot)
-                    //     .or_insert_with(HashMap::new)
-                    //     .entry(index)
-                    //     .or_insert(shred);
+                    dict.entry(slot)
+                        .or_insert_with(HashMap::new)
+                        .entry(index)
+                        .or_insert(shred);
 
-                    // if slot > current_slot {
-                    //     current_slot = slot;
-                    //     println!("current_slot: {:?}", current_slot);
-                    // }
+                    if slot > current_slot {
+                        current_slot = slot;
+                        println!("current_slot: {:?}", current_slot);
+                    }
                 }
             }
         } else if let Err(e) = shred_result {
@@ -224,86 +199,86 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
         // println!("dict: {:?}", dict);
 
-        // if current_slot > processed_slot + SLOT_DELAY {
-        //     processed_slot = current_slot - SLOT_DELAY;
+        if current_slot > processed_slot + SLOT_DELAY {
+            processed_slot = current_slot - SLOT_DELAY;
 
-        //     if dict.contains_key(&processed_slot) {
-        //         let processed_slot_dict = dict.get(&processed_slot).unwrap();
+            if dict.contains_key(&processed_slot) {
+                let processed_slot_dict = dict.get(&processed_slot).unwrap();
 
-        //         let mut indexes = processed_slot_dict.keys().collect::<Vec<&u32>>();
-        //         indexes.sort();
+                let mut indexes = processed_slot_dict.keys().collect::<Vec<&u32>>();
+                indexes.sort();
 
-        //         let min_index = indexes[0];
-        //         let max_index = indexes[indexes.len() - 1];
+                let min_index = indexes[0];
+                let max_index = indexes[indexes.len() - 1];
 
-        //         let missing_indexes: Vec<u32> = (*min_index..=*max_index)
-        //             .filter(|j| !indexes.contains(&j))
-        //             .collect();
+                let missing_indexes: Vec<u32> = (*min_index..=*max_index)
+                    .filter(|j| !indexes.contains(&j))
+                    .collect();
 
-        //         println!(
-        //             "processed_slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
-        //             processed_slot,
-        //             min_index,
-        //             max_index,
-        //             missing_indexes.len()
-        //         );
+                println!(
+                    "processed_slot: {:?}, min_index: {:?}, max_index: {:?}, missing_indexes: {:?}",
+                    processed_slot,
+                    min_index,
+                    max_index,
+                    missing_indexes.len()
+                );
 
-        //         if missing_indexes.len() == 0 {
-        //             // println!("No missing indexes, deshredding");
+                if missing_indexes.len() == 0 {
+                    // println!("No missing indexes, deshredding");
 
-        //             let data_shreds = indexes
-        //                 .iter()
-        //                 .map(|index| {
-        //                     let shred_data = processed_slot_dict.get(index).unwrap();
-        //                     shred_data.clone() // Clone the Shred object
-        //                 })
-        //                 .collect::<Vec<Shred>>(); // Collect into Vec<Shred>
+                    let data_shreds = indexes
+                        .iter()
+                        .map(|index| {
+                            let shred_data = processed_slot_dict.get(index).unwrap();
+                            shred_data.clone() // Clone the Shred object
+                        })
+                        .collect::<Vec<Shred>>(); // Collect into Vec<Shred>
 
-        //             let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
+                    let deshred_payload = Shredder::deshred(&data_shreds[..]).unwrap();
 
-        //             let deshred_entries: Vec<Entry> =
-        //                 bincode::deserialize(&deshred_payload).unwrap();
+                    let deshred_entries: Vec<Entry> =
+                        bincode::deserialize(&deshred_payload).unwrap();
 
-        //             let nb_txs: usize = deshred_entries
-        //                 .iter()
-        //                 .map(|entry| entry.transactions.len())
-        //                 .sum();
+                    let nb_txs: usize = deshred_entries
+                        .iter()
+                        .map(|entry| entry.transactions.len())
+                        .sum();
 
-        //             for entry in deshred_entries.iter() {
-        //                 for tx in entry.transactions.iter() {
-        //                     if tx
-        //                         .message
-        //                         .static_account_keys()
-        //                         .contains(&target_program_pubky)
-        //                     {
-        //                         let now: DateTime<Utc> = Utc::now();
-        //                         let utc_string =
-        //                             now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
-        //                         println!("\nfound tx with target program id at {:?}", utc_string);
-        //                         println!("tx: {:?}", tx);
-        //                         let signature = tx.signatures[0];
-        //                         println!("signature: {:?}", signature);
+                    for entry in deshred_entries.iter() {
+                        for tx in entry.transactions.iter() {
+                            if tx
+                                .message
+                                .static_account_keys()
+                                .contains(&target_program_pubky)
+                            {
+                                let now: DateTime<Utc> = Utc::now();
+                                let utc_string =
+                                    now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
+                                println!("\nfound tx with target program id at {:?}", utc_string);
+                                println!("tx: {:?}", tx);
+                                let signature = tx.signatures[0];
+                                println!("signature: {:?}", signature);
 
-        //                         // append signature and timestamp to file
-        //                         tx_file
-        //                             .write_all(
-        //                                 format!("{:?} {:?}\n", signature, utc_string).as_bytes(),
-        //                             )
-        //                             .unwrap();
-        //                     }
-        //                 }
-        //             }
+                                // append signature and timestamp to file
+                                tx_file
+                                    .write_all(
+                                        format!("{:?} {:?}\n", signature, utc_string).as_bytes(),
+                                    )
+                                    .unwrap();
+                            }
+                        }
+                    }
 
-        //             // // write entries to file
-        //             // let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
-        //             // let file_name = format!("slots/entries_{}.json", processed_slot);
-        //             // let mut file = std::fs::File::create(file_name).unwrap();
-        //             // file.write_all(serialized.as_bytes()).unwrap();
-        //         }
-        //     } else {
-        //         println!("processed_slot: {:?} not found", processed_slot);
-        //     }
-        // }
+                    // // write entries to file
+                    // let serialized = serde_json::to_string_pretty(&deshred_entries).unwrap();
+                    // let file_name = format!("slots/entries_{}.json", processed_slot);
+                    // let mut file = std::fs::File::create(file_name).unwrap();
+                    // file.write_all(serialized.as_bytes()).unwrap();
+                }
+            } else {
+                println!("processed_slot: {:?} not found", processed_slot);
+            }
+        }
 
         i += 1;
     }
