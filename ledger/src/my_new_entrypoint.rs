@@ -4,6 +4,7 @@
 #![allow(unused_variables)]
 #![allow(unused_mut)]
 #![allow(unused_imports)]
+#![allow(dead_code)]
 
 pub mod bank_forks_utils;
 pub mod bigtable_delete;
@@ -58,11 +59,13 @@ extern crate solana_frozen_abi_macro;
 
 // use serde_json;
 use chrono::{DateTime, Utc};
+use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::Write;
 use std::str::FromStr;
+use std::sync::Mutex;
 use tokio::net::UdpSocket;
 
 #[tokio::main]
@@ -98,6 +101,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
     let mut slots_dict = HashMap::new();
 
     let mut buf = [0u8; 4096]; // Adjust buffer size as needed
+
+    // let mut tx_file: File = File::create("txs.log").unwrap();
 
     // Pubkey::from_str("Vote111111111111111111111111111111111111111").unwrap();
 
@@ -229,11 +234,24 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
 // scp phil@35.245.148.173:/home/phil/dev/my-jito-solana/slots/entries_255012011.json slots/entries_255012011.json
 
-fn deshred_from_dict(dict: &HashMap<u64, HashMap<u32, Shred>>, slot: u64, arg_max_index: u32) {
+lazy_static! {
+    static ref TX_FILE: Mutex<File> = Mutex::new(
+        OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open("txs.log")
+            .unwrap()
+    );
+}
+
+fn deshred_from_dict(
+    dict: &HashMap<u64, HashMap<u32, Shred>>,
+    slot: u64,
+    arg_max_index: u32,
+    // mut tx_file: File,
+) {
     let target_program_pubky: Pubkey =
         Pubkey::from_str("TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN").unwrap();
-
-    let mut tx_file: File = File::create("txs.log").unwrap();
 
     if let Some(slot_dict) = dict.get(&slot) {
         let mut indexes = slot_dict
@@ -301,6 +319,7 @@ fn deshred_from_dict(dict: &HashMap<u64, HashMap<u32, Shred>>, slot: u64, arg_ma
                                 println!("signature: {:?}", signature);
 
                                 // append signature and timestamp to file
+                                let mut tx_file = TX_FILE.lock().unwrap();
                                 tx_file
                                     .write_all(
                                         format!("{:?} {:?}\n", signature, utc_string).as_bytes(),
