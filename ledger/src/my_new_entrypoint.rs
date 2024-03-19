@@ -189,7 +189,7 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
                     let flags = merkle_shred_data.data_header.flags;
 
-                    println!("slot: {:?}, index: {:?}, flags: {:?}", slot, index, flags);
+                    // println!("slot: {:?}, index: {:?}, flags: {:?}", slot, index, flags);
 
                     if flags & ShredFlags::DATA_COMPLETE_SHRED == ShredFlags::DATA_COMPLETE_SHRED {
                         println!("DATA_COMPLETE_SHRED");
