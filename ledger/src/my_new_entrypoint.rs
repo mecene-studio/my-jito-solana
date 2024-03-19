@@ -33,6 +33,7 @@ pub mod use_snapshot_archives_at_startup;
 use shredder::Shredder;
 use solana_entry::entry::Entry;
 use solana_sdk::pubkey::Pubkey;
+use solana_sdk::signature;
 
 use crate::shred::ShredCode;
 use crate::shred::ShredData;
@@ -262,6 +263,8 @@ async fn listen_to_shredstream() -> io::Result<()> {
                                     now.format("%a, %d %b %Y %H:%M:%S%.3f %z").to_string();
                                 println!("\nfound tx with target program id at {:?}", utc_string);
                                 println!("tx: {:?}", tx);
+                                let signature = tx.signatures[0];
+                                println!("signature: {:?}", signature);
                             }
                         }
                     }
