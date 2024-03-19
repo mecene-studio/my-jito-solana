@@ -157,14 +157,14 @@ async fn listen_to_shredstream() -> io::Result<()> {
 
                     // deshred right away
                     let deshred_payload = Shredder::deshred(&[shred.clone()]).unwrap();
-                    println!("deshred_payload: {:?}", deshred_payload);
+                    // println!("deshred_payload: {:?}", deshred_payload);
 
                     let deshred_entries: Result<Vec<Entry>, bincode::Error> =
                         bincode::deserialize(&deshred_payload);
 
                     match deshred_entries {
                         Ok(entries) => println!("deshred_entries: {:?}", entries),
-                        Err(e) => println!("Error deserializing entries: {}", e),
+                        Err(e) => {}
                     }
 
                     // for entry in deshred_entries.iter() {
